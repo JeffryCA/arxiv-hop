@@ -1,0 +1,16 @@
+:root { color-scheme: light; font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #292b30; background: #fff; }
+* { box-sizing: border-box; }
+body { width: 280px; margin: 0; padding: 20px; }
+header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+header img { flex: none; }
+h1 { font-size: 17px; font-weight: 650; letter-spacing: -.4px; line-height: 1.3; margin: 0; }
+header p { color: #7b7b80; font-size: 11px; margin: 2px 0 0; }
+.setting { display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-weight: 550; border-top: 1px solid #eeeef0; padding-top: 16px; }
+input { appearance: none; position: relative; width: 36px; height: 21px; border-radius: 20px; background: #d4d4d8; margin: 0; cursor: pointer; transition: background .15s; flex: none; }
+input::before { content: ""; position: absolute; top: 3px; left: 3px; width: 15px; height: 15px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px #0002; transition: transform .15s; }
+input:checked { background: #a02c2c; }
+input:checked::before { transform: translateX(15px); }
+input:disabled { cursor: wait; opacity: .5; }
+input:focus-visible { outline: 2px solid #a02c2c; outline-offset: 4px; }
+#status { color: #727278; font-size: 11px; min-height: 33px; margin: 9px 0 0; }
+@media (prefers-reduced-motion: reduce) { input, input::before { transition: none; } }

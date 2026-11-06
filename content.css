@@ -1,0 +1,37 @@
+/* All rules are scoped to the extension's own UI. */
+#arxiv-hop-preview {
+  box-sizing: border-box;
+  color-scheme: light;
+  color: #292b30;
+  background: #fff;
+  border: 1px solid #dedee2;
+  font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  z-index: 2147483646;
+  text-align: left;
+}
+#arxiv-hop-preview {
+  position: fixed;
+  width: 410px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  padding: 18px;
+  border-radius: 10px;
+  box-shadow: 0 8px 36px #00000020;
+  z-index: 2147483647;
+}
+#arxiv-hop-preview[hidden] { display: none; }
+#arxiv-hop-preview .arxiv-hop-source { color: #8d2525; font-size: 11px; margin-bottom: 6px; }
+#arxiv-hop-preview .arxiv-hop-title { font-size: 15px; font-weight: 600; line-height: 1.4; }
+#arxiv-hop-preview .arxiv-hop-detail { color: #62646a; margin: 9px 0 15px; font-size: 12px; line-height: 1.6; }
+#arxiv-hop-preview .arxiv-hop-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+#arxiv-hop-preview a { color: #8d2525; text-decoration: none; font-size: 12px; }
+#arxiv-hop-preview a:hover { text-decoration: underline; }
+#arxiv-hop-preview .arxiv-hop-primary { font-weight: 600; }
+#arxiv-hop-preview a[hidden] { display: none; }
+#arxiv-hop-preview a:focus-visible { outline: 2px solid #a02c2c; outline-offset: 4px; }
+a[data-arxiv-hop="search"] { text-decoration: underline dotted !important; text-underline-offset: 3px; }
+.arxiv-hop-abstract-hint { font: 12px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #686868; margin: 7px 0 12px; }
+@media print {
+  #arxiv-hop-preview, .arxiv-hop-abstract-hint { display: none !important; }
+}
