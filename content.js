@@ -1,20 +1,32 @@
 /* Runs only on arXiv pages. The toolbar setting is shared across open papers. */
 (() => {
   "use strict";
-  const { resolveReference, webURL } = globalThis.ArxivHopResolver;
+  const { resolveReference, citationTarget, webURL } = globalThis.ArxivHopResolver;
   if (document.documentElement.hasAttribute("data-arxiv-hop-loaded")) return;
   document.documentElement.setAttribute("data-arxiv-hop-loaded", "");
 
-  function observeEnabled(update) {
-    let revision = 0;
+  function observeSettings(update) {
+    const defaults = { enabled: true, destination: "html" };
+    const settings = { ...defaults };
+    const changedBeforeLoad = new Set();
+    let loaded = false;
     chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== "local" || !changes.enabled) return;
-      revision++;
-      update(changes.enabled.newValue !== false);
+      if (area !== "local") return;
+      let changed = false;
+      for (const key of Object.keys(defaults)) {
+        if (!changes[key]) continue;
+        if (!loaded) changedBeforeLoad.add(key);
+        settings[key] = changes[key].newValue ?? defaults[key];
+        changed = true;
+      }
+      if (loaded && changed) update(settings);
     });
-    const initialRevision = revision;
-    chrome.storage.local.get({ enabled: true }).then(settings => {
-      if (revision === initialRevision) update(settings.enabled !== false);
+    chrome.storage.local.get(defaults).then(saved => {
+      for (const key of Object.keys(defaults)) {
+        if (!changedBeforeLoad.has(key)) settings[key] = saved[key];
+      }
+      loaded = true;
+      update(settings);
     }).catch(error => console.warn("arXiv Hop could not read its setting.", error));
   }
 
@@ -26,7 +38,7 @@
       hint.textContent = "arXiv Hop: open HTML to follow citations in new tabs.";
       hint.hidden = true;
       html.insertAdjacentElement("afterend", hint);
-      observeEnabled(enabled => { hint.hidden = !enabled; });
+      observeSettings(settings => { hint.hidden = settings.enabled === false; });
     }
     return;
   }
@@ -64,6 +76,7 @@
   if (!citations.size) return;
 
   let enabled = false;
+  let destination = "html";
   let activeLink = null;
   let dismissTimer;
   const card = document.createElement("section");
@@ -95,12 +108,13 @@
     clearTimeout(dismissTimer);
     activeLink = link;
     const { result, id, original: attrs } = citations.get(link);
+    const target = citationTarget(result, destination);
     source.textContent = result.kind === "arxiv" ? `arXiv · ${result.id}` : result.kind === "search" ? "No direct link · search fallback" : result.kind === "doi" ? "DOI · publisher page" : "Link from the bibliography";
     heading.textContent = result.title || "Cited reference";
     detail.textContent = result.text.slice(0, 650) + (result.text.length > 650 ? "…" : "");
-    primary.href = result.url;
-    primary.textContent = result.label + " ↗";
-    paper.hidden = !result.paperURL;
+    primary.href = target.url;
+    primary.textContent = target.label + " ↗";
+    paper.hidden = !result.paperURL || result.paperURL === target.url;
     paper.href = result.paperURL || result.url;
     paper.textContent = "Abstract ↗";
     original.href = attrs.href;
@@ -123,10 +137,11 @@
   function apply() {
     for (const [link, { result, original }] of citations) {
       if (enabled) {
-        link.href = result.url;
+        const target = citationTarget(result, destination);
+        link.href = target.url;
         link.target = "_blank";
         link.rel = "noopener noreferrer";
-        link.title = `${result.label}${result.title ? `: ${result.title}` : ""}. Alt-click for the bibliography.`;
+        link.title = `${target.label}${result.title ? `: ${result.title}` : ""}. Alt-click for the bibliography.`;
         link.dataset.arxivHop = result.kind;
       } else {
         for (const [key, value] of Object.entries(original)) {
@@ -172,5 +187,9 @@
       event.stopImmediatePropagation();
     }, true);
   }
-  observeEnabled(value => { enabled = value; apply(); });
+  observeSettings(settings => {
+    enabled = settings.enabled !== false;
+    destination = settings.destination;
+    apply();
+  });
 })();

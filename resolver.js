@@ -44,9 +44,9 @@
     text = clean(text);
     title = clean(title);
     const query = (title || text.replace(/^\[\d+\]\s*/, "")).slice(0, 450);
-    const search = new URL("https://arxiv.org/search/");
-    search.search = new URLSearchParams({ query, searchtype: title ? "title" : "all" }).toString();
-    const fallback = { kind: "search", label: "Search arXiv", url: search.href, query, title, text };
+    const search = new URL("https://www.google.com/search");
+    search.search = new URLSearchParams({ q: query }).toString();
+    const fallback = { kind: "search", label: "Search Google", url: search.href, query, title, text };
 
     // Only accept bare IDs in explicit identifier fields, never arbitrary numbers in prose.
     const ids = new Set([...links, ...identifiers].map(arxivID).filter(Boolean));
@@ -83,7 +83,15 @@
     return fallback;
   }
 
-  const api = { arxivID, resolveReference, webURL };
+  function citationTarget(reference, destination = "html") {
+    if (reference.kind !== "arxiv") return reference;
+    const format = destination === "pdf" ? ["pdf", "Open arXiv PDF"]
+      : destination === "abstract" ? ["abs", "Open abstract"]
+      : ["html", "Open arXiv HTML"];
+    return { ...reference, url: `https://arxiv.org/${format[0]}/${reference.id}`, label: format[1] };
+  }
+
+  const api = { arxivID, resolveReference, citationTarget, webURL };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else globalThis.ArxivHopResolver = api;
 })();

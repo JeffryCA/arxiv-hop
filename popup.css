@@ -13,4 +13,8 @@ input:checked::before { transform: translateX(15px); }
 input:disabled { cursor: wait; opacity: .5; }
 input:focus-visible { outline: 2px solid #a02c2c; outline-offset: 4px; }
 #status { color: #727278; font-size: 11px; min-height: 33px; margin: 9px 0 0; }
+.destination-label { display: block; font-size: 12px; font-weight: 550; margin: 10px 0 7px; }
+select { display: block; width: 100%; padding: 8px 10px; border: 1px solid #dcdce0; border-radius: 6px; background: #fff; color: inherit; font: inherit; cursor: pointer; }
+select:disabled { cursor: wait; opacity: .5; }
+select:focus-visible { outline: 2px solid #a02c2c; outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { input, input::before { transition: none; } }

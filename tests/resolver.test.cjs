@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { arxivID, resolveReference } = require("../resolver.js");
+const { arxivID, resolveReference, citationTarget } = require("../resolver.js");
 
 test("modern, versioned, legacy and arXiv DOI identifiers", () => {
   for (const [input, id] of [
@@ -50,8 +50,34 @@ test("linked PDFs, other paper pages, and honest title searches", () => {
   assert.equal(resolveReference({ links: ["https://openreview.net/forum?id=x"] }).kind, "link");
   const result = resolveReference({ title: "Learning & control: a study", text: "Smith et al. 2025" });
   assert.equal(result.kind, "search");
-  assert.equal(new URL(result.url).searchParams.get("query"), "Learning & control: a study");
-  assert.equal(new URL(result.url).searchParams.get("searchtype"), "title");
+  assert.equal(new URL(result.url).origin, "https://www.google.com");
+  assert.equal(new URL(result.url).searchParams.get("q"), "Learning & control: a study");
+  assert.equal(result.label, "Search Google");
+  const unstructured = resolveReference({ text: "[17] Smith & Müller. A paper, 2024." });
+  assert.equal(new URL(unstructured.url).searchParams.get("q"), "Smith & Müller. A paper, 2024.");
+});
+
+test("click destinations default to HTML and preserve versioned and legacy IDs", () => {
+  for (const id of ["2406.09246v2", "hep-th/9901001v1"]) {
+    const reference = resolveReference({ identifiers: [id] });
+    assert.equal(citationTarget(reference).url, `https://arxiv.org/html/${id}`);
+    assert.equal(citationTarget(reference, "html").label, "Open arXiv HTML");
+    assert.equal(citationTarget(reference, "pdf").url, `https://arxiv.org/pdf/${id}`);
+    assert.equal(citationTarget(reference, "abstract").url, `https://arxiv.org/abs/${id}`);
+    assert.equal(citationTarget(reference, "unknown").url, `https://arxiv.org/html/${id}`);
+  }
+});
+
+test("click preferences preserve DOI, external-paper, and Google fallbacks", () => {
+  for (const reference of [
+    resolveReference({ links: ["https://doi.org/10.1234/example"] }),
+    resolveReference({ links: ["https://openreview.net/forum?id=x"] }),
+    resolveReference({ title: "An unlinked paper" }),
+  ]) {
+    for (const destination of ["html", "pdf", "abstract"]) {
+      assert.equal(citationTarget(reference, destination).url, reference.url);
+    }
+  }
 });
 
 test("unsafe links and malformed escape sequences cannot break resolution", () => {

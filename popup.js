@@ -1,31 +1,47 @@
 "use strict";
 const toggle = document.querySelector("#enabled");
+const destination = document.querySelector("#destination");
 const status = document.querySelector("#status");
+const settings = { enabled: true, destination: "html" };
 
-function render(enabled) {
-  toggle.checked = enabled;
-  status.textContent = enabled ? "On for arXiv HTML papers." : "Off. Citations jump to the bibliography.";
+function render() {
+  toggle.checked = settings.enabled !== false;
+  destination.value = ["html", "pdf", "abstract"].includes(settings.destination) ? settings.destination : "html";
+  status.textContent = toggle.checked ? "On for arXiv HTML papers." : "Off. Citations jump to the bibliography.";
 }
 
-chrome.storage.local.get({ enabled: true }).then(settings => {
-  render(settings.enabled !== false);
-  toggle.disabled = false;
+function setBusy(busy) {
+  toggle.disabled = busy;
+  destination.disabled = busy;
+}
+
+chrome.storage.local.get(settings).then(saved => {
+  Object.assign(settings, saved);
+  render();
+  setBusy(false);
 }).catch(() => { status.textContent = "Couldn't load the setting. Reopen to try again."; });
 
-toggle.addEventListener("change", async () => {
-  const enabled = toggle.checked;
-  toggle.disabled = true;
+async function saveSetting(key, value) {
+  setBusy(true);
   try {
-    await chrome.storage.local.set({ enabled });
-    render(enabled);
+    await chrome.storage.local.set({ [key]: value });
+    settings[key] = value;
+    render();
   } catch {
-    render(!enabled);
+    render();
     status.textContent = "Couldn't save the setting. Please try again.";
   } finally {
-    toggle.disabled = false;
+    setBusy(false);
   }
-});
+}
+
+toggle.addEventListener("change", () => saveSetting("enabled", toggle.checked));
+destination.addEventListener("change", () => saveSetting("destination", destination.value));
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && changes.enabled) render(changes.enabled.newValue !== false);
+  if (area !== "local") return;
+  for (const key of ["enabled", "destination"]) {
+    if (changes[key]) settings[key] = changes[key].newValue;
+  }
+  render();
 });
