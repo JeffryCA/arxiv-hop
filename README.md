@@ -1,10 +1,12 @@
-# arXiv Hop — Follow your curiosity.
+# arXiv Hop
+
+Follow your curiosity.
 
 Click citations in arXiv HTML papers to open the cited paper in a new tab. Hover over missing links to look up matching titles on arXiv; otherwise search Google.
 
 <img src="docs/menu-bar.png" alt="arXiv Hop menu with citation toggle and destination selector" width="280">
 
-[Download extension](https://github.com/JeffryCA/arxiv-hop/releases/latest) · [Watch the 44-second demo](https://github.com/JeffryCA/arxiv-hop/releases/download/v0.4.0/arxiv-hop-demo.mp4)
+[Download extension](https://github.com/JeffryCA/arxiv-hop/releases/latest)
 
 **Install:** Download and unzip the release ZIP. In Comet/Chrome, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select the extracted `arxiv-hop` folder. Reload your paper.
 
@@ -15,3 +17,5 @@ Dependency-free; no backend or tracking. Hover lookups contact arXiv's public AP
 Thank you to arXiv for use of its open access interoperability.
 
 **Test:** `node --test tests/*.test.cjs`
+
+https://github.com/user-attachments/assets/90fa62bf-6e2c-47ec-9d84-183255b5bbec
