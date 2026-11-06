@@ -1,7 +1,7 @@
 /* Runs only on arXiv pages. The toolbar setting is shared across open papers. */
 (() => {
   "use strict";
-  const { resolveReference, citationTarget, webURL } = globalThis.ArxivHopResolver;
+  const { resolveReference, citationTarget, webURL, referenceTitle, titleQuery, matchTitle } = globalThis.ArxivHopResolver;
   if (document.documentElement.hasAttribute("data-arxiv-hop-loaded")) return;
   document.documentElement.setAttribute("data-arxiv-hop-loaded", "");
 
@@ -49,8 +49,9 @@
   for (const item of bibliography) {
     const clone = item.cloneNode(true);
     clone.querySelectorAll(".ltx_bib_cited, .ltx_tag_bibitem").forEach(node => node.remove());
-    const title = clone.querySelector(".ltx_bib_title")?.textContent || "";
-    const text = [...clone.querySelectorAll(".ltx_bibblock")].map(node => node.textContent).join(" ") || clone.textContent;
+    const blocks = [...clone.querySelectorAll(".ltx_bibblock")].map(node => node.textContent);
+    const title = referenceTitle(clone.querySelector(".ltx_bib_title")?.textContent, blocks);
+    const text = blocks.join(" ") || clone.textContent;
     const links = [...clone.querySelectorAll("a[href]")].map(a => webURL(a.getAttribute("href"), location.href))
       .filter(url => url && !(url.origin === location.origin && url.pathname === location.pathname))
       .map(url => url.href);
@@ -79,12 +80,14 @@
   let destination = "html";
   let activeLink = null;
   let dismissTimer;
+  let lookupTimer;
   const card = document.createElement("section");
   card.id = "arxiv-hop-preview";
   card.setAttribute("aria-label", "Citation preview");
   card.hidden = true;
   const source = document.createElement("div");
   source.className = "arxiv-hop-source";
+  source.setAttribute("aria-live", "polite");
   const heading = document.createElement("div");
   heading.className = "arxiv-hop-title";
   const detail = document.createElement("p");
@@ -101,15 +104,18 @@
   card.append(source, heading, detail, actions);
   document.body.append(card);
 
-  function hide() { card.hidden = true; activeLink = null; }
-  function laterHide() { clearTimeout(dismissTimer); dismissTimer = setTimeout(hide, 180); }
+  function hide() { clearTimeout(lookupTimer); card.hidden = true; activeLink = null; }
+  function laterHide() { clearTimeout(lookupTimer); clearTimeout(dismissTimer); dismissTimer = setTimeout(hide, 180); }
   function preview(link) {
     if (!enabled) return;
     clearTimeout(dismissTimer);
     activeLink = link;
     const { result, id, original: attrs } = citations.get(link);
     const target = citationTarget(result, destination);
-    source.textContent = result.kind === "arxiv" ? `arXiv · ${result.id}` : result.kind === "search" ? "No direct link · search fallback" : result.kind === "doi" ? "DOI · publisher page" : "Link from the bibliography";
+    source.textContent = result.kind === "arxiv" ? `arXiv · ${result.id}${result.viaLookup ? " · title match" : ""}`
+      : result.lookupState === "pending" ? "Checking arXiv… · Google available"
+      : result.kind === "search" ? "No direct link · search fallback"
+      : result.kind === "doi" ? "DOI · publisher page" : "Link from the bibliography";
     heading.textContent = result.title || "Cited reference";
     detail.textContent = result.text.slice(0, 650) + (result.text.length > 650 ? "…" : "");
     primary.href = target.url;
@@ -134,30 +140,64 @@
     card.style.top = `${Math.max(12, Math.min(top, innerHeight - height - 12))}px`;
   }
 
-  function apply() {
-    for (const [link, { result, original }] of citations) {
-      if (enabled) {
-        const target = citationTarget(result, destination);
-        link.href = target.url;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        link.title = `${target.label}${result.title ? `: ${result.title}` : ""}. Alt-click for the bibliography.`;
-        link.dataset.arxivHop = result.kind;
-      } else {
-        for (const [key, value] of Object.entries(original)) {
-          if (value === null) link.removeAttribute(key); else link.setAttribute(key, value);
-        }
-        delete link.dataset.arxivHop;
+  function applyLink(link, { result, original }) {
+    if (enabled) {
+      const target = citationTarget(result, destination);
+      link.href = target.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.title = `${target.label}${result.title ? `: ${result.title}` : ""}. Alt-click for the bibliography.`;
+      link.dataset.arxivHop = result.kind;
+    } else {
+      for (const [key, value] of Object.entries(original)) {
+        if (value === null) link.removeAttribute(key); else link.setAttribute(key, value);
       }
+      delete link.dataset.arxivHop;
     }
+  }
+
+  function apply() {
+    for (const [link, entry] of citations) applyLink(link, entry);
     hide();
   }
 
+  async function lookup(result) {
+    result.lookupState = "pending";
+    if (activeLink && citations.get(activeLink).result === result) preview(activeLink);
+    try {
+      const response = await chrome.runtime.sendMessage({ type: "lookup-title", title: result.title });
+      if (response?.xml) {
+        const feed = new DOMParser().parseFromString(response.xml, "application/xml");
+        if (!feed.querySelector("parsererror")) {
+          const atom = "http://www.w3.org/2005/Atom";
+          const value = (node, tag) => node.getElementsByTagNameNS(atom, tag)[0]?.textContent || "";
+          const entries = [...feed.getElementsByTagNameNS(atom, "entry")]
+            .map(entry => ({ id: value(entry, "id"), title: value(entry, "title") }));
+          const count = feed.getElementsByTagNameNS("http://a9.com/-/spec/opensearch/1.1/", "totalResults")[0]?.textContent;
+          const match = matchTitle(result.title, entries, count?.trim() ? Number(count) : NaN);
+          if (match) Object.assign(result, resolveReference({ title: match.title, text: result.text, identifiers: [match.id] }), { viaLookup: true });
+        }
+      }
+    } catch { /* Offline, timeout or extension reload: Google remains usable. */ }
+    result.lookupState = "done";
+    for (const [link, entry] of citations) if (entry.result === result) applyLink(link, entry);
+    if (enabled && activeLink && citations.get(activeLink).result === result) preview(activeLink);
+  }
+
+  function beginPreview(link) {
+    preview(link);
+    clearTimeout(lookupTimer);
+    const { result } = citations.get(link);
+    if (enabled && result.kind === "search" && !result.ambiguous && !result.lookupState && titleQuery(result.title)) {
+      lookupTimer = setTimeout(() => { if (enabled && activeLink === link) void lookup(result); }, 350);
+    }
+  }
+
   for (const link of citations.keys()) {
-    link.addEventListener("mouseenter", () => preview(link));
-    link.addEventListener("mousemove", () => { if (card.hidden) preview(link); });
+    link.addEventListener("mouseenter", () => beginPreview(link));
+    link.addEventListener("mousemove", () => { if (card.hidden) beginPreview(link); });
     link.addEventListener("mouseleave", laterHide);
-    link.addEventListener("focus", () => preview(link));
+    link.addEventListener("focus", () => beginPreview(link));
     link.addEventListener("blur", laterHide);
   }
   card.addEventListener("mouseenter", () => clearTimeout(dismissTimer));

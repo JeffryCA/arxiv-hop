@@ -1,6 +1,43 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { arxivID, resolveReference, citationTarget } = require("../resolver.js");
+const { arxivID, resolveReference, citationTarget, normalizeTitle, referenceTitle, titleQuery, matchTitle } = require("../resolver.js");
+
+test("titles tolerate typography while preserving word order, numbers and mathematical signs", () => {
+  assert.equal(normalizeTitle("Sequence-to-Sequence Learning: with Neural Networks."), normalizeTitle("sequence to sequence learning with neural networks"));
+  assert.equal(normalizeTitle("Vision & Control"), normalizeTitle("Vision and Control"));
+  assert.notEqual(normalizeTitle("Learning without supervision"), normalizeTitle("Learning with supervision"));
+  assert.notEqual(normalizeTitle("GPT-3 for language learning"), normalizeTitle("GPT-4 for language learning"));
+  assert.notEqual(normalizeTitle("Learning a + b"), normalizeTitle("Learning a = b"));
+});
+
+test("unmarked author/title/venue blocks recover Attention's reference 35 without guessing other layouts", () => {
+  assert.equal(referenceTitle("", ["Ilya Sutskever, Oriol Vinyals, and Quoc VV Le.", "Sequence to sequence learning with neural networks.\n", "In Advances in Neural Information Processing Systems, pages 3104–3112, 2014."]), "Sequence to sequence learning with neural networks");
+  assert.equal(referenceTitle("An explicitly marked title.", []), "An explicitly marked title");
+  assert.equal(referenceTitle("", ["Authors. Title. Venue, 2014."]), "");
+  assert.equal(referenceTitle("", ["Authors", "In Some Conference", "2014"]), "");
+});
+
+test("title lookup accepts a unique full match and rejects ambiguity, partials and incomplete feeds", () => {
+  const title = "Sequence to sequence learning with neural networks";
+  const entry = { id: "http://arxiv.org/abs/1409.3215v3", title: "Sequence-to-Sequence Learning with Neural Networks" };
+  assert.equal(matchTitle(title, [entry], 1).id, "1409.3215v3");
+  assert.equal(matchTitle(title, [entry, { ...entry, id: "1409.3215v2" }], 2).id, "1409.3215v2");
+  assert.equal(matchTitle(title, [entry, { ...entry, id: "2406.09246" }], 2), null);
+  assert.equal(matchTitle(title, [{ ...entry, title: entry.title + " with Attention" }], 1), null);
+  assert.equal(matchTitle(title, [entry], 2), null);
+  assert.equal(matchTitle(title, [entry], 11), null);
+  assert.equal(matchTitle(title, [{ ...entry, id: "https://example.org/abs/1409.3215" }], 1), null);
+  assert.equal(matchTitle(title, [], 0), null);
+});
+
+test("queries use a fixed public API endpoint and cannot inject search operators", () => {
+  const url = new URL(titleQuery('Neural learning \" OR all:electron'));
+  assert.equal(url.origin, "https://export.arxiv.org");
+  assert.equal(url.searchParams.get("search_query"), 'ti:"neural learning or all electron"');
+  assert.equal(url.searchParams.get("max_results"), "10");
+  assert.equal(titleQuery("AI"), null);
+  assert.equal(titleQuery("a".repeat(351)), null);
+});
 
 test("modern, versioned, legacy and arXiv DOI identifiers", () => {
   for (const [input, id] of [

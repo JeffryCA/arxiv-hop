@@ -91,7 +91,45 @@
     return { ...reference, url: `https://arxiv.org/${format[0]}/${reference.id}`, label: format[1] };
   }
 
-  const api = { arxivID, resolveReference, citationTarget, webURL };
+  // Keep word order and numbers; tolerate typography, never partial-title matches.
+  function normalizeTitle(value) {
+    return clean(value).normalize("NFKC").toLowerCase().replace(/\u00ad/g, "")
+      .replace(/&/g, " and ").replace(/['’]/g, "")
+      .replace(/[^\p{L}\p{N}+=<>]+/gu, " ").trim();
+  }
+
+  function referenceTitle(explicit, blocks = []) {
+    if (clean(explicit)) return clean(explicit).replace(/\.$/, "");
+    // Common unstructured LaTeXML layout: authors / title / venue.
+    // Other layouts keep their existing full-citation Google fallback.
+    const candidate = clean(blocks.length >= 3 ? blocks[1] : "").replace(/\.$/, "");
+    if (candidate.length > 350 || normalizeTitle(candidate).split(" ").length < 3
+      || /^(?:in\b|pp\.|pages?\b|vol\.|journal\b|proceedings\b|arxiv\b|doi\b|https?:)/i.test(candidate)) return "";
+    return candidate;
+  }
+
+  function titleQuery(title) {
+    const normalized = normalizeTitle(title);
+    const words = normalized.match(/[\p{L}\p{N}]+/gu) || [];
+    if (normalized.length < 12 || normalized.length > 350 || words.length < 3) return null;
+    const url = new URL("https://export.arxiv.org/api/query");
+    url.search = new URLSearchParams({ search_query: `ti:"${words.join(" ")}"`, start: "0", max_results: "10" });
+    return url.href;
+  }
+
+  function matchTitle(title, entries, total) {
+    if (!titleQuery(title) || !Number.isInteger(total) || total !== entries.length || total > 10) return null;
+    const matches = new Map();
+    for (const entry of entries) {
+      const id = arxivID(entry.id);
+      if (id && normalizeTitle(entry.title) === normalizeTitle(title)) {
+        matches.set(id.replace(/v\d+$/, "").toLowerCase(), { id, title: clean(entry.title) });
+      }
+    }
+    return matches.size === 1 ? [...matches.values()][0] : null;
+  }
+
+  const api = { arxivID, resolveReference, citationTarget, webURL, normalizeTitle, referenceTitle, titleQuery, matchTitle };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else globalThis.ArxivHopResolver = api;
 })();
