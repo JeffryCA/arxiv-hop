@@ -45,3 +45,78 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
   render();
 });
+
+const { defaults: downloadDefaults, relativeFolder, folderRecord } = globalThis.ArxivHopDownloads;
+const downloadFields = document.querySelector("#download-settings");
+const downloadFolder = document.querySelector("#download-folder");
+const downloadNaming = document.querySelector("#download-naming");
+const downloadStatus = document.querySelector("#download-status");
+const chooseFolder = document.querySelector("#choose-folder");
+const reconnectFolder = document.querySelector("#reconnect-folder");
+const resetFolder = document.querySelector("#reset-folder");
+const folderAccessHelp = document.querySelector("#folder-access-help");
+const folderPage = new URLSearchParams(location.search).has("folder");
+let directory;
+let previousSubfolder = "";
+
+if (folderPage) {
+  document.body.classList.add("folder-page");
+  document.querySelector(".downloads").open = true;
+}
+
+async function renderFolder() {
+  downloadFolder.textContent = directory?.name || previousSubfolder || "Downloads (default)";
+  resetFolder.hidden = !directory && !previousSubfolder;
+  reconnectFolder.hidden = !directory || await directory.queryPermission({ mode: "readwrite" }) === "granted";
+  folderAccessHelp.hidden = !folderPage || reconnectFolder.hidden;
+}
+
+Promise.all([chrome.storage.local.get(downloadDefaults), folderRecord()]).then(async ([saved, handle]) => {
+  directory = handle;
+  previousSubfolder = relativeFolder(saved.downloadFolder) || "";
+  downloadNaming.value = saved.downloadNaming === "id" ? "id" : "title";
+  await renderFolder();
+  downloadFields.disabled = false;
+}).catch(() => { downloadStatus.textContent = "Couldn't load download settings. Reopen to try again."; });
+
+async function updateDownloads(update) {
+  downloadFields.disabled = true;
+  downloadStatus.textContent = "";
+  try {
+    await update();
+    await renderFolder();
+  } catch (error) {
+    if (error.name !== "AbortError") downloadStatus.textContent = "Couldn't update download settings. Please try again.";
+  } finally {
+    downloadFields.disabled = false;
+  }
+}
+
+chooseFolder.addEventListener("click", () => updateDownloads(async () => {
+  const handle = await window.showDirectoryPicker({ mode: "readwrite", startIn: directory || "downloads" });
+  await folderRecord(handle);
+  directory = handle;
+  downloadStatus.textContent = "Folder saved. Reopen the popup to reconnect if needed.";
+}));
+
+reconnectFolder.addEventListener("click", () => {
+  if (!folderPage) {
+    // A browser tab can show the persistent access prompt.
+    return updateDownloads(() => chrome.tabs.create({ url: chrome.runtime.getURL("popup.html?folder") }));
+  }
+  return updateDownloads(async () => {
+    const permission = await directory.requestPermission({ mode: "readwrite" });
+    downloadStatus.textContent = permission === "granted" ? "Folder reconnected." : "Allow access to save PDFs here.";
+  });
+});
+
+resetFolder.addEventListener("click", () => updateDownloads(async () => {
+  await chrome.storage.local.set({ downloadFolder: "" });
+  previousSubfolder = "";
+  await folderRecord(null);
+  directory = null;
+}));
+
+downloadNaming.addEventListener("change", () => updateDownloads(async () => {
+  await chrome.storage.local.set({ downloadNaming: downloadNaming.value });
+}));

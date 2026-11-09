@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>arXiv Hop</title>
     <link rel="stylesheet" href="popup.css">
+    <script src="downloads.js" defer></script>
     <script src="popup.js" defer></script>
   </head>
   <body>
@@ -23,5 +24,22 @@
       <option value="pdf">arXiv PDF</option>
       <option value="abstract">Abstract</option>
     </select>
+    <details class="downloads">
+      <summary>PDF downloads</summary>
+      <fieldset id="download-settings" disabled>
+        <span class="destination-label">Download folder</span>
+        <p id="download-folder">Downloads (default)</p>
+        <button type="button" id="choose-folder">Choose folder…</button>
+        <button type="button" id="reconnect-folder" hidden>Reconnect folder</button>
+        <button type="button" id="reset-folder" hidden>Use Downloads</button>
+        <p id="folder-access-help" hidden>Choose “Allow on every visit” when the browser asks.</p>
+        <label class="destination-label" for="download-naming">File name</label>
+        <select id="download-naming">
+          <option value="title">Paper title, when available</option>
+          <option value="id">arXiv ID</option>
+        </select>
+      </fieldset>
+      <p id="download-status" role="status" aria-live="polite"></p>
+    </details>
   </body>
 </html>

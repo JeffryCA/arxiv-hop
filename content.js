@@ -1,9 +1,36 @@
 /* Runs only on arXiv pages. The toolbar setting is shared across open papers. */
 (() => {
   "use strict";
-  const { resolveReference, citationTarget, webURL, referenceTitle, titleQuery, matchTitle } = globalThis.ArxivHopResolver;
+  const { arxivID, resolveReference, citationTarget, webURL, referenceTitle, titleQuery, matchTitle } = globalThis.ArxivHopResolver;
   if (document.documentElement.hasAttribute("data-arxiv-hop-loaded")) return;
   document.documentElement.setAttribute("data-arxiv-hop-loaded", "");
+
+  const paperID = arxivID(location.href);
+  if (paperID) {
+    const downloadButton = 'a.download-pdf, a.mobile-submission-download, a[title="Download PDF"]';
+
+    document.addEventListener("click", async event => {
+      if (!event.isTrusted || event.button !== 0 || event.defaultPrevented
+        || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      const link = event.target.closest?.(downloadButton);
+      const pdf = link && webURL(link.href);
+      if (!pdf || pdf.origin !== location.origin || !pdf.pathname.startsWith("/pdf/")
+        || arxivID(pdf.href) !== paperID) return;
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const title = document.querySelector('meta[name="citation_title"]')?.content.trim()
+        || document.querySelector("h1.ltx_title_document")?.textContent.trim();
+      try {
+        const result = await chrome.runtime.sendMessage({ type: "download-paper", title });
+        if (!result?.started && !result?.alreadySaved) {
+          console.warn("arXiv Hop could not start the PDF download.", result?.error);
+        }
+      } catch (error) {
+        console.warn("arXiv Hop could not start the PDF download.", error);
+      }
+    }, true);
+  }
 
   function observeSettings(update) {
     const defaults = { enabled: true, destination: "html" };

@@ -3,8 +3,8 @@
   "name": "arXiv Hop",
   "version": "0.4.0",
   "description": "Open cited papers from arXiv HTML without losing your reading position.",
-  "permissions": ["storage"],
-  "host_permissions": ["https://export.arxiv.org/*"],
+  "permissions": ["storage", "downloads"],
+  "host_permissions": ["https://arxiv.org/*", "https://export.arxiv.org/*"],
   "background": { "service_worker": "background.js" },
   "action": {
     "default_title": "arXiv Hop",
