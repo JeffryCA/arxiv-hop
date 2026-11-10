@@ -18,7 +18,7 @@ The Store listing will be available after Google approves the first release. Cho
 
 Dependency-free; no backend or tracking. Hover lookups contact arXiv's public API; results are cached locally for a day. Matches tolerate typography differences, never partial titles. Stores your preferences and a small cache.
 
-[Privacy policy](PRIVACY.md) · [Chrome Web Store release workflow](docs/chrome-web-store.md)
+[Privacy policy](PRIVACY.md)
 
 Thank you to arXiv for use of its open access interoperability.
 
