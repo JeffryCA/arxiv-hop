@@ -16,6 +16,8 @@ Click citations in arXiv HTML papers to open the cited paper in a new tab. Hover
 
 Dependency-free; no backend or tracking. Hover lookups contact arXiv's public API; results are cached locally for a day. Matches tolerate typography differences, never partial titles. Stores your preferences and a small cache.
 
+[Privacy policy](PRIVACY.md) · [Chrome Web Store release workflow](docs/chrome-web-store.md)
+
 Thank you to arXiv for use of its open access interoperability.
 
 **Test:** `node --test tests/*.test.cjs`
