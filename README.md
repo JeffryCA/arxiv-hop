@@ -4,11 +4,13 @@ Follow your curiosity.
 
 Click citations in arXiv HTML papers to open the cited paper in a new tab. Hover over missing links to look up matching titles on arXiv; otherwise search Google.
 
+[Install arXiv Hop from the Chrome Web Store](https://chromewebstore.google.com/detail/arxiv-hop/lajhhodanfdfdebpjjgibagbakapbild)
+
+The Store listing will be available after Google approves the first release. Choose **Add to Chrome** to install the extension and receive updates automatically.
+
+**Manual installation.** Download and unzip the latest release ZIP. In Comet or Chrome, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select the extracted `arxiv-hop` folder. Reload your paper. [GitHub releases](https://github.com/JeffryCA/arxiv-hop/releases/latest)
+
 <img src="docs/menu-bar.png" alt="arXiv Hop menu with citation toggle and destination selector" width="280">
-
-[Download extension](https://github.com/JeffryCA/arxiv-hop/releases/latest)
-
-**Install:** Download and unzip the release ZIP. In Comet/Chrome, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select the extracted `arxiv-hop` folder. Reload your paper.
 
 **Options:** Click the toolbar icon to toggle citation links or choose HTML (default), PDF, or abstract. Choices persist and update open papers immediately. Alt-click for the bibliography. HTML availability varies by paper.
 
