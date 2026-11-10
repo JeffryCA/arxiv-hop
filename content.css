@@ -30,8 +30,6 @@
 #arxiv-hop-preview .arxiv-hop-primary { font-weight: 600; }
 #arxiv-hop-preview a[hidden] { display: none; }
 #arxiv-hop-preview a:focus-visible { outline: 2px solid #a02c2c; outline-offset: 4px; }
-a[data-arxiv-hop="search"] { text-decoration: underline dotted !important; text-underline-offset: 3px; }
-.arxiv-hop-abstract-hint { font: 12px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #686868; margin: 7px 0 12px; }
 @media print {
-  #arxiv-hop-preview, .arxiv-hop-abstract-hint { display: none !important; }
+  #arxiv-hop-preview { display: none !important; }
 }

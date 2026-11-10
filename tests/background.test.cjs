@@ -67,7 +67,7 @@ test("downloads use the page's versioned PDF and a safe title by default", async
 
 test("ID naming works for legacy papers and missing titles", async () => {
   const instance = worker({ saved: { downloadFolder: "Papers/ Robotics ", downloadNaming: "id" } });
-  await instance.download("An Older Paper", "https://arxiv.org/abs/cs/9901001v2");
+  await instance.download("An Older Paper", "https://arxiv.org/html/cs/9901001v2");
   assert.equal(instance.downloadCalls[0].filename, "Papers/Robotics/cs-9901001v2.pdf");
   const defaults = worker();
   await defaults.download();
@@ -78,6 +78,7 @@ test("ID naming works for legacy papers and missing titles", async () => {
 test("download requests cannot use an external sender or escape Downloads", async () => {
   const instance = worker({ saved: { downloadFolder: "../Papers" } });
   assert.equal((await instance.download("Some Paper", "https://example.org/html/1706.03762")).started, false);
+  assert.equal((await instance.download("Some Paper", "https://arxiv.org/abs/1706.03762")).started, false);
   assert.equal((await instance.download("Some Paper", "https://arxiv.org/html/invalid")).started, false);
   await instance.download("Some Paper");
   assert.equal(instance.downloadCalls.length, 1);

@@ -1,4 +1,4 @@
-/* Runs only on arXiv pages. The toolbar setting is shared across open papers. */
+/* Runs only on arXiv HTML papers. The toolbar setting is shared across open papers. */
 (() => {
   "use strict";
   const { arxivID, resolveReference, citationTarget, webURL, referenceTitle, titleQuery, matchTitle } = globalThis.ArxivHopResolver;
@@ -7,7 +7,7 @@
 
   const paperID = arxivID(location.href);
   if (paperID) {
-    const downloadButton = 'a.download-pdf, a.mobile-submission-download, a[title="Download PDF"]';
+    const downloadButton = 'a[title="Download PDF"]';
 
     document.addEventListener("click", async event => {
       if (!event.isTrusted || event.button !== 0 || event.defaultPrevented
@@ -55,19 +55,6 @@
       loaded = true;
       update(settings);
     }).catch(error => console.warn("arXiv Hop could not read its setting.", error));
-  }
-
-  if (location.pathname.startsWith("/abs/")) {
-    const html = document.querySelector("#latexml-download-link");
-    if (html && webURL(html.href)?.pathname.startsWith("/html/")) {
-      const hint = document.createElement("p");
-      hint.className = "arxiv-hop-abstract-hint";
-      hint.textContent = "arXiv Hop: open HTML to follow citations in new tabs.";
-      hint.hidden = true;
-      html.insertAdjacentElement("afterend", hint);
-      observeSettings(settings => { hint.hidden = settings.enabled === false; });
-    }
-    return;
   }
 
   const bibliography = [...document.querySelectorAll(".ltx_bibitem[id]")];
@@ -174,12 +161,10 @@
       link.target = "_blank";
       link.rel = "noopener noreferrer";
       link.title = `${target.label}${result.title ? `: ${result.title}` : ""}. Alt-click for the bibliography.`;
-      link.dataset.arxivHop = result.kind;
     } else {
       for (const [key, value] of Object.entries(original)) {
         if (value === null) link.removeAttribute(key); else link.setAttribute(key, value);
       }
-      delete link.dataset.arxivHop;
     }
   }
 
