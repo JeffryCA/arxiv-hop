@@ -14,7 +14,7 @@ The Store listing will be available after Google approves the first release. Cho
 
 **Options:** Click the toolbar icon to toggle citation links or choose HTML (default), PDF, or abstract. Choices persist and update open papers immediately. Alt-click for the bibliography. HTML availability varies by paper.
 
-**PDF downloads:** **View PDF** opens the PDF viewer. Click **Download PDF** in an HTML paper to save the file. PDFs go to browser Downloads by default. Turn off **Ask where to save each file before downloading** for automatic saves there. Under **PDF downloads**, pick a folder or choose paper titles or arXiv IDs for filenames. A chosen folder silently skips duplicates. If access expires, use **Reconnect folder**.
+**PDF downloads:** **View PDF** opens the PDF viewer. To save the file, click **Download PDF** under **Access Paper** on the abstract page or the download icon in an HTML paper's header. PDFs go to browser Downloads by default. Turn off **Ask where to save each file before downloading** for automatic saves there. Under **PDF downloads**, pick a folder or choose paper titles or arXiv IDs for filenames. A chosen folder silently skips duplicates. If access expires, use **Reconnect folder**.
 
 Dependency-free; no backend or tracking. Hover lookups contact arXiv's public API; results are cached locally for a day. Matches tolerate typography differences, never partial titles. Stores your preferences and a small cache.
 

@@ -1,4 +1,4 @@
-/* Runs only on arXiv HTML papers. The toolbar setting is shared across open papers. */
+/* Runs only on arXiv paper pages. The toolbar setting is shared across open papers. */
 (() => {
   "use strict";
   const { arxivID, resolveReference, citationTarget, webURL, referenceTitle, titleQuery, matchTitle } = globalThis.ArxivHopResolver;
@@ -7,12 +7,48 @@
 
   const paperID = arxivID(location.href);
   if (paperID) {
-    const downloadButton = 'a[title="Download PDF"]';
+    if (location.pathname.startsWith("/abs/")) {
+      for (const view of document.querySelectorAll('a.download-pdf, a.mobile-submission-download[href^="/pdf/"]')) {
+        if (arxivID(view.href) !== paperID) continue;
+        const download = view.cloneNode(false);
+        download.textContent = "Download PDF";
+        download.setAttribute("data-arxiv-hop-download", "");
+        for (const attribute of ["id", "accesskey", "aria-describedby", "target"]) download.removeAttribute(attribute);
+        download.title = "Download PDF";
+        if (view.parentElement.tagName === "LI") {
+          const item = document.createElement("li");
+          item.append(download);
+          view.parentElement.after(item);
+        } else {
+          view.after(download);
+        }
+      }
+    } else {
+      const download = document.querySelector('a[title="Download PDF"]');
+      if (download && arxivID(download.href) === paperID) {
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("viewBox", "0 0 24 24");
+        svg.setAttribute("width", "1.25rem");
+        svg.setAttribute("height", "1.25rem");
+        svg.setAttribute("fill", "none");
+        svg.setAttribute("stroke", "currentColor");
+        svg.setAttribute("stroke-width", "2");
+        svg.setAttribute("aria-hidden", "true");
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", "M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5");
+        svg.append(path);
+        download.replaceChildren(svg);
+        download.classList.add("toggle-icon");
+        download.setAttribute("aria-label", "Download PDF");
+        download.setAttribute("data-arxiv-hop-download", "");
+        download.removeAttribute("target");
+      }
+    }
 
     document.addEventListener("click", async event => {
       if (!event.isTrusted || event.button !== 0 || event.defaultPrevented
         || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-      const link = event.target.closest?.(downloadButton);
+      const link = event.target.closest?.("a[data-arxiv-hop-download]");
       const pdf = link && webURL(link.href);
       if (!pdf || pdf.origin !== location.origin || !pdf.pathname.startsWith("/pdf/")
         || arxivID(pdf.href) !== paperID) return;
@@ -20,7 +56,7 @@
       event.preventDefault();
       event.stopImmediatePropagation();
       const title = document.querySelector('meta[name="citation_title"]')?.content.trim()
-        || document.querySelector("h1.ltx_title_document")?.textContent.trim();
+        || document.querySelector("h1.ltx_title_document, h1.ltx_title_block")?.textContent.trim();
       try {
         const result = await chrome.runtime.sendMessage({ type: "download-paper", title });
         if (!result?.started && !result?.alreadySaved) {
@@ -31,6 +67,8 @@
       }
     }, true);
   }
+
+  if (location.pathname.startsWith("/abs/")) return;
 
   function observeSettings(update) {
     const defaults = { enabled: true, destination: "html" };

@@ -75,10 +75,20 @@ test("ID naming works for legacy papers and missing titles", async () => {
   assert.deepEqual(defaults.downloadCalls.map(call => call.filename), ["1706.03762v7.pdf", "1706.03762v7.pdf"]);
 });
 
+test("abstract-page downloads use the same saved folder and naming settings", async () => {
+  const instance = worker({ saved: { downloadFolder: "Papers", downloadNaming: "id" } });
+  assert.equal((await instance.download("Paper", "https://arxiv.org/abs/1706.03762v7")).started, true);
+  assert.deepEqual(instance.downloadCalls, [{
+    url: "https://arxiv.org/pdf/1706.03762v7",
+    filename: "Papers/1706.03762v7.pdf",
+    saveAs: false,
+    conflictAction: "uniquify"
+  }]);
+});
+
 test("download requests cannot use an external sender or escape Downloads", async () => {
   const instance = worker({ saved: { downloadFolder: "../Papers" } });
   assert.equal((await instance.download("Some Paper", "https://example.org/html/1706.03762")).started, false);
-  assert.equal((await instance.download("Some Paper", "https://arxiv.org/abs/1706.03762")).started, false);
   assert.equal((await instance.download("Some Paper", "https://arxiv.org/html/invalid")).started, false);
   await instance.download("Some Paper");
   assert.equal(instance.downloadCalls.length, 1);

@@ -29,8 +29,8 @@ const published = status.publishedItemRevisionStatus;
 const submitted = status.submittedItemRevisionStatus;
 const includesVersion = revision => revision?.distributionChannels?.some(channel => channel.crxVersion === version);
 
-if (!published || status.takenDown || status.warned) {
-  throw new Error("Check the initial publication and policy status in the Chrome Web Store dashboard.");
+if (status.takenDown || status.warned) {
+  throw new Error("Check the policy status in the Chrome Web Store dashboard.");
 }
 if (includesVersion(published) || (submitted?.state === "PENDING_REVIEW" && includesVersion(submitted))) {
   console.log(`Version ${version} is already published or awaiting review.`);

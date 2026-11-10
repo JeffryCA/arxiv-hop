@@ -92,7 +92,7 @@ async function lookup(title) {
 
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
   if (message?.type === "download-paper") {
-    const id = /^https:\/\/arxiv\.org\/html\//.test(sender.url || "") && arxivID(sender.url);
+    const id = /^https:\/\/arxiv\.org\/(?:abs|html)\//.test(sender.url || "") && arxivID(sender.url);
     if (!id) {
       respond({ started: false });
       return;
